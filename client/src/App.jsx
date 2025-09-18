@@ -1,35 +1,30 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Routes, Route, Link } from "react-router-dom";
+import AdminPage from "./pages/AdminPage";
+import ViewerPage from "./pages/ViewerPage";
+import BracketPage from "./pages/BracketPage";
+import TournamentList from "./pages/TournamentList";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="h-screen flex flex-col">
+      <nav className="p-4 bg-gray-800 flex justify-between text-white">
+        <div className="flex gap-4">
+          <Link to="/">Viewer</Link>
+          <Link to="/tournaments">Tournaments</Link>
+          <Link to="/admin">Admin</Link>
+        </div>
+      </nav>
+
+      <div className="flex-1 overflow-y-auto">
+        <Routes>
+          <Route path="/" element={<ViewerPage />} />
+          <Route path="/tournaments" element={<TournamentList />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/bracket/:id" element={<BracketPage />} />
+        </Routes>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </div>
+  );
 }
 
-export default App
+export default App;
