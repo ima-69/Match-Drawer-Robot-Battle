@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchTournament, reportMatchResult, completeKnockoutRound, completeWildcardRound, startNextKnockoutRound, startNextWildcardRound, startSemifinalRound, completeSemifinalRound, completeFinalRound } from "../store/slices/tournamentSlice";
+import { fetchTournament, reportMatchResult, completeKnockoutRound, completeWildcardRound, startNextKnockoutRound, startNextWildcardRound, startGrandFinalRound, completeGrandFinalRound, completeSecondPlaceRound } from "../store/slices/tournamentSlice";
 import { useParams } from "react-router-dom";
 
 function BracketPage() {
@@ -84,43 +84,43 @@ function BracketPage() {
     }
   };
 
-  const handleStartSemifinalRound = async () => {
+  const handleStartGrandFinalRound = async () => {
     if (isCompletingRound) return;
     
     try {
       setIsCompletingRound(true);
-      await dispatch(startSemifinalRound(id));
+      await dispatch(startGrandFinalRound(id));
       dispatch(fetchTournament(id));
     } catch (error) {
-      console.error("Error starting semifinal round:", error);
+      console.error("Error starting grand final round:", error);
     } finally {
       setIsCompletingRound(false);
     }
   };
 
-  const handleCompleteSemifinalRound = async () => {
+  const handleCompleteGrandFinalRound = async () => {
     if (isCompletingRound) return;
     
     try {
       setIsCompletingRound(true);
-      await dispatch(completeSemifinalRound(id));
+      await dispatch(completeGrandFinalRound(id));
       dispatch(fetchTournament(id));
     } catch (error) {
-      console.error("Error completing semifinal round:", error);
+      console.error("Error completing grand final round:", error);
     } finally {
       setIsCompletingRound(false);
     }
   };
 
-  const handleCompleteFinalRound = async () => {
+  const handleCompleteSecondPlaceRound = async () => {
     if (isCompletingRound) return;
     
     try {
       setIsCompletingRound(true);
-      await dispatch(completeFinalRound(id));
+      await dispatch(completeSecondPlaceRound(id));
       dispatch(fetchTournament(id));
     } catch (error) {
-      console.error("Error completing final round:", error);
+      console.error("Error completing second place round:", error);
     } finally {
       setIsCompletingRound(false);
     }
@@ -177,7 +177,11 @@ function BracketPage() {
                 {player.logo && (
                   <img src={player.logo} alt={player.name} className="w-5 h-5 rounded-full border border-gray-600" />
                 )}
-                <span className="text-white font-medium text-sm truncate">{player.name}</span>
+                <span className={`font-medium text-sm truncate ${
+                  isCompleted && match.winner === player._id 
+                    ? 'text-green-400 font-bold' 
+                    : 'text-white'
+                }`}>{player.name}</span>
               </div>
               <div className="flex items-center gap-1">
                 {isCompleted && match.winner === player._id && (
@@ -386,52 +390,52 @@ function BracketPage() {
             </div>
           )}
 
-          {current?.currentRound === "semifinal" && (
-            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 shadow-lg backdrop-blur-sm border border-purple-500">
-              <h2 className="text-lg font-bold text-white mb-4 text-center">
-                Semifinal Round
-              </h2>
-              
-              {/* Show start semifinal button if not started yet */}
-              {(!current.semifinalMatches || current.semifinalMatches.length === 0) && (
-                <div className="text-center mb-4">
-                  <button
-                    onClick={handleStartSemifinalRound}
-                    disabled={isCompletingRound}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50 text-sm"
-                  >
-                    {isCompletingRound ? "Starting..." : "Start Semifinal Round"}
-                  </button>
-                </div>
-              )}
-              
-              {current.semifinalMatches && current.semifinalMatches.length > 0 && (
-                <RoundSection
-                  title="Semifinal"
-                  rounds={[{ matches: current.semifinalMatches, isCompleted: false }]}
-                  roundType="semifinal"
-                  color="border-purple-500"
-                  isCurrentRound={true}
-                  onCompleteRound={handleCompleteSemifinalRound}
-                />
-              )}
-            </div>
-          )}
-
           {current?.currentRound === "grandfinal" && (
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 shadow-lg backdrop-blur-sm border border-red-500">
               <h2 className="text-lg font-bold text-white mb-4 text-center">
                 Grand Final
               </h2>
               
+              {/* Show start grand final button if conditions are met */}
+              {current.knockoutFinalWinners && current.knockoutFinalWinners.length === 2 && (
+                <div className="text-center mb-4">
+                  <button
+                    onClick={handleStartGrandFinalRound}
+                    disabled={isCompletingRound}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50 text-sm"
+                  >
+                    {isCompletingRound ? "Starting..." : "Start Grand Final Round"}
+                  </button>
+                </div>
+              )}
+              
               {current.finalMatch && (
                 <RoundSection
                   title="Grand Final"
                   rounds={[{ matches: [current.finalMatch], isCompleted: false }]}
-                  roundType="final"
+                  roundType="grandfinal"
                   color="border-red-500"
                   isCurrentRound={true}
-                  onCompleteRound={handleCompleteFinalRound}
+                  onCompleteRound={handleCompleteGrandFinalRound}
+                />
+              )}
+            </div>
+          )}
+
+          {current?.currentRound === "secondplace" && (
+            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 shadow-lg backdrop-blur-sm border border-orange-500">
+              <h2 className="text-lg font-bold text-white mb-4 text-center">
+                2nd Place Match
+              </h2>
+              
+              {current.secondPlaceMatch && (
+                <RoundSection
+                  title="2nd Place Match"
+                  rounds={[{ matches: [current.secondPlaceMatch], isCompleted: false }]}
+                  roundType="secondplace"
+                  color="border-orange-500"
+                  isCurrentRound={true}
+                  onCompleteRound={handleCompleteSecondPlaceRound}
                 />
               )}
             </div>
@@ -482,24 +486,24 @@ function BracketPage() {
               </button>
             )}
 
-            {/* Start Semifinal Round */}
-            {current?.wildcardFinalWinner && current?.knockoutFinalLoser && current?.currentRound === "semifinal" && (
+            {/* Start Grand Final Round */}
+            {current?.knockoutFinalWinners && current.knockoutFinalWinners.length === 2 && current?.currentRound === "grandfinal" && (
               <button
-                onClick={handleStartSemifinalRound}
+                onClick={handleStartGrandFinalRound}
                 disabled={isCompletingRound}
-                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
+                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Start Semifinal Round
+                Start Grand Final Round
               </button>
             )}
 
             {/* Show message if no actions available */}
             {(!current?.nextKnockoutTeams || current.nextKnockoutTeams.length === 0) && 
              (!current?.nextWildcardTeams || current.nextWildcardTeams.length === 0) && 
-             (!current?.wildcardFinalWinner || !current?.knockoutFinalLoser || current?.currentRound !== "semifinal") && (
+             (!current?.knockoutFinalWinners || current.knockoutFinalWinners.length !== 2 || current?.currentRound !== "grandfinal") && (
               <div className="text-gray-400 text-sm text-center">
                 Complete current round to unlock next actions
               </div>

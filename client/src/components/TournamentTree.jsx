@@ -16,14 +16,14 @@ const TournamentTree = ({ tournament }) => {
             ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-300' 
             : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300'
           }
-          ${hasWinner ? 'ring-2 ring-yellow-300' : ''}
+          ${hasWinner ? 'ring-2 ring-green-300' : ''}
           ${isFinal ? 'scale-105 shadow-lg' : ''}
         `}>
           {/* Round Type Badge */}
           <div className={`
             absolute -top-1 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full text-xs font-bold
             ${isFinal 
-              ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white' 
+              ? 'bg-gradient-to-r from-green-400 to-green-500 text-white' 
               : match.roundType === 'knockout' 
                 ? 'bg-gradient-to-r from-blue-400 to-blue-500 text-white'
                 : 'bg-gradient-to-r from-purple-400 to-purple-500 text-white'
@@ -38,7 +38,7 @@ const TournamentTree = ({ tournament }) => {
               <div key={player._id || playerIndex} className={`
                 px-2 py-1 rounded text-xs font-medium transition-all duration-200
                 ${match.winner?._id === player._id 
-                  ? 'bg-gradient-to-r from-yellow-200 to-yellow-300 text-yellow-800 font-bold' 
+                  ? 'bg-gradient-to-r from-green-200 to-green-300 text-green-600 font-bold' 
                   : match.losers?.some(loser => loser._id === player._id) 
                     ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-700' 
                     : 'bg-white text-gray-700'
@@ -46,7 +46,7 @@ const TournamentTree = ({ tournament }) => {
               `}>
                 <div className="flex items-center justify-center space-x-1">
                   {match.winner?._id === player._id && (
-                    <span className="text-yellow-600 text-xs">👑</span>
+                    <span className="text-green-600 text-xs">👑</span>
                   )}
                   <span className="truncate">{player.name || `Player ${playerIndex + 1}`}</span>
                 </div>
@@ -56,8 +56,8 @@ const TournamentTree = ({ tournament }) => {
 
           {/* Winner Display */}
           {isCompleted && hasWinner && (
-            <div className="mt-1 p-1 bg-gradient-to-r from-yellow-200 to-yellow-300 rounded text-xs">
-              <div className="text-xs font-bold text-yellow-800 flex items-center justify-center space-x-1">
+            <div className="mt-1 p-1 bg-gradient-to-r from-green-200 to-green-300 rounded text-xs">
+              <div className="text-xs font-bold text-green-600 flex items-center justify-center space-x-1">
                 <span>🏆</span>
                 <span className="truncate">{match.winner?.name}</span>
               </div>
@@ -153,7 +153,7 @@ const TournamentTree = ({ tournament }) => {
       finalRounds.push(
         <div key="final" className="mb-8">
           <div className="text-center mb-4">
-            <div className="inline-flex items-center px-5 py-2 rounded-full text-base font-bold shadow-lg bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
+            <div className="inline-flex items-center px-5 py-2 rounded-full text-base font-bold shadow-lg bg-gradient-to-r from-green-500 to-green-600 text-white">
               <span className="mr-1">🏆</span>
               Grand Final
               <span className="ml-1">
@@ -212,24 +212,24 @@ const TournamentTree = ({ tournament }) => {
 
     if (tournament.knockoutFinalWinner || tournament.knockoutFinalLoser || tournament.wildcardFinalWinner) {
       storedTeams.push(
-        <div key="final-teams" className="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200 shadow-sm">
-          <h4 className="font-bold text-yellow-800 mb-2 flex items-center text-sm">
+        <div key="final-teams" className="mb-4 p-3 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200 shadow-sm">
+          <h4 className="font-bold text-green-800 mb-2 flex items-center text-sm">
             <span className="mr-1">👑</span>
             Final Teams
           </h4>
           <div className="space-y-2">
             {tournament.knockoutFinalWinner && (
-              <div className="px-2 py-1 bg-yellow-200 rounded-full text-xs font-medium text-yellow-800">
+              <div className="px-2 py-1 bg-green-200 rounded-full text-xs font-medium text-green-800">
                 <strong>Knockout Winner:</strong> {tournament.knockoutFinalWinner.name}
               </div>
             )}
             {tournament.knockoutFinalLoser && (
-              <div className="px-2 py-1 bg-yellow-200 rounded-full text-xs font-medium text-yellow-800">
+              <div className="px-2 py-1 bg-green-200 rounded-full text-xs font-medium text-green-800">
                 <strong>Knockout Final Loser:</strong> {tournament.knockoutFinalLoser.name}
               </div>
             )}
             {tournament.wildcardFinalWinner && (
-              <div className="px-2 py-1 bg-yellow-200 rounded-full text-xs font-medium text-yellow-800">
+              <div className="px-2 py-1 bg-green-200 rounded-full text-xs font-medium text-green-800">
                 <strong>Wildcard Winner:</strong> {tournament.wildcardFinalWinner.name}
               </div>
             )}
@@ -259,7 +259,7 @@ const TournamentTree = ({ tournament }) => {
             <div className={`px-3 py-1 rounded-full font-medium ${
               tournament.currentRound === 'completed' 
                 ? 'bg-green-100 text-green-800' 
-                : 'bg-yellow-100 text-yellow-800'
+                : 'bg-green-100 text-green-800'
             }`}>
               {tournament.currentRound === 'completed' ? '🏆 Complete' : '⏳ In Progress'}
             </div>
@@ -301,13 +301,13 @@ const TournamentTree = ({ tournament }) => {
 
       {/* Tournament Complete */}
       {tournament.currentRound === 'completed' && tournament.finalMatch && (
-        <div className="text-center p-6 bg-gradient-to-r from-yellow-100 to-yellow-200 rounded-xl shadow-lg border border-yellow-300">
-          <h2 className="text-2xl font-bold text-yellow-800 mb-3 flex items-center justify-center">
+        <div className="text-center p-6 bg-gradient-to-r from-green-100 to-green-200 rounded-xl shadow-lg border border-green-300">
+          <h2 className="text-2xl font-bold text-green-800 mb-3 flex items-center justify-center">
             <span className="mr-2">🏆</span>
             Tournament Complete!
           </h2>
-          <div className="text-lg text-yellow-700 font-medium">
-            Champion: <span className="font-bold text-yellow-900">{tournament.finalMatch.winner?.name}</span>
+          <div className="text-lg text-green-700 font-medium">
+            Champion: <span className="font-bold text-green-900">{tournament.finalMatch.winner?.name}</span>
           </div>
         </div>
       )}

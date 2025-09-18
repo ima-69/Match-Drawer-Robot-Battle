@@ -210,17 +210,38 @@ export const completeKnockoutRound = async (req, res) => {
       console.log("Final knockout round completed - storing results");
       tournament.knockoutComplete = true;
       
-      // Store knockout final winner and loser
+      // Store knockout final winners and losers
+      tournament.knockoutFinalWinners = winners; // Store both winners
+      tournament.knockoutFinalLosers = losers; // Store both losers
+      
+      // For backward compatibility, also store individual winner/loser
       tournament.knockoutFinalWinner = winners[0];
       tournament.knockoutFinalLoser = losers[0];
       
-      // DON'T add knockout final loser to wildcard - it goes to semifinal
+      // Check if we need to create the final wildcard round
+      if (tournament.nextWildcardTeams && tournament.nextWildcardTeams.length === 3) {
+        console.log("Creating final wildcard round with 3 teams");
+        const finalWildcardMatches = await createWildcardRound(tournament.nextWildcardTeams, tournament.currentWildcardRound);
+        
+        tournament.wildcardRounds.push({
+          roundNumber: tournament.currentWildcardRound,
+          matches: finalWildcardMatches.map(m => m._id),
+          isCompleted: false
+        });
+        
+        tournament.nextWildcardTeams = []; // Clear stored teams since we created the round
+        
+        console.log(`Created final wildcard round with ${finalWildcardMatches.length} matches`);
+        console.log(`Teams in final wildcard: ${finalWildcardMatches.map(m => m.players.map(p => p.name || p._id)).flat()}`);
+      }
+      
       // Switch to wildcard round to complete final wildcard round
       tournament.currentRound = "wildcard";
       tournament.isRoundComplete = false;
       
-      console.log(`Knockout final winner: ${winners[0]}, Knockout final loser: ${losers[0]}`);
-      console.log(`Knockout final loser will go to semifinal, not wildcard`);
+      console.log(`Knockout final winners: ${winners.length}, Knockout final losers: ${losers.length}`);
+      console.log(`Stored knockoutFinalWinners: ${tournament.knockoutFinalWinners?.length || 0}, knockoutFinalLosers: ${tournament.knockoutFinalLosers?.length || 0}`);
+      console.log(`Switching to wildcard round to complete final wildcard round`);
     } else {
       // Store winners for next knockout round (don't start it yet)
       tournament.nextKnockoutTeams = winners;
@@ -305,21 +326,71 @@ export const completeWildcardRound = async (req, res) => {
       .map(match => match.winner);
 
     console.log(`Wildcard Round ${tournament.currentWildcardRound} completed. Winners: ${winners.length}`);
+    console.log(`Tournament state - knockoutFinalWinners: ${tournament.knockoutFinalWinners?.length || 0}, knockoutFinalLosers: ${tournament.knockoutFinalLosers?.length || 0}`);
 
-    // Check if this is the final wildcard round (3 teams)
+    // Check if this is the final wildcard round (3 teams) or second wildcard round (1 winner)
     if (winners.length === 3) {
       console.log("Final wildcard round completed - storing results");
-      tournament.wildcardComplete = true;
       
       // Store wildcard final winner (we'll select one from the 3)
       tournament.wildcardFinalWinner = winners[0]; // For now, take first one
       
-      // Switch to semifinal
-      tournament.currentRound = "semifinal";
-      tournament.isRoundComplete = false;
+      // Check if we have knockout final losers to create second wildcard round
+      if (tournament.knockoutFinalLosers && tournament.knockoutFinalLosers.length === 2) {
+        console.log("Creating second wildcard round with wildcard winner + 2 knockout losers");
+        
+        // Create second wildcard round: wildcard winner + 2 knockout losers
+        const secondWildcardTeams = [tournament.wildcardFinalWinner, ...tournament.knockoutFinalLosers];
+        const secondWildcardMatches = await createWildcardRound(secondWildcardTeams, tournament.currentWildcardRound + 1);
+        
+        tournament.wildcardRounds.push({
+          roundNumber: tournament.currentWildcardRound + 1,
+          matches: secondWildcardMatches.map(m => m._id),
+          isCompleted: false
+        });
+        
+        tournament.currentWildcardRound = tournament.currentWildcardRound + 1;
+        tournament.wildcardComplete = false; // Not complete yet, need second wildcard round
+        
+        console.log(`Created second wildcard round with ${secondWildcardMatches.length} matches`);
+        console.log(`Teams in second wildcard: ${secondWildcardTeams.map(t => t.name || t._id)}`);
+      } else if (tournament.knockoutFinalWinners && tournament.knockoutFinalWinners.length === 2) {
+        // We have knockout final winners but no losers yet - this shouldn't happen in the new structure
+        console.log("ERROR: We have knockout final winners but no losers. This indicates a logic error.");
+        tournament.wildcardComplete = true;
+        tournament.currentRound = "grandfinal";
+        tournament.isRoundComplete = false;
+        
+        console.log(`Switching to grand final with existing knockout winners`);
+      } else {
+        // No knockout final losers yet, this is the first final wildcard round
+        console.log("No knockout final losers found. This might be the first final wildcard round.");
+        console.log(`knockoutFinalLosers: ${tournament.knockoutFinalLosers}, knockoutFinalWinners: ${tournament.knockoutFinalWinners}`);
+        
+        tournament.wildcardComplete = true;
+        
+        // Switch to knockout round to complete final knockout round
+        tournament.currentRound = "knockout";
+        tournament.isRoundComplete = false;
+        
+        console.log(`First final wildcard round completed. Waiting for knockout final losers.`);
+      }
       
       console.log(`Wildcard final winner: ${winners[0]}`);
-      console.log(`Switching to semifinal: Wildcard winner vs Knockout final loser`);
+    } else if (winners.length === 1 && tournament.knockoutFinalWinners) {
+      // This is the second wildcard round completion - we have the final wildcard winner
+      console.log("Second wildcard round completed - final wildcard winner determined");
+      tournament.wildcardComplete = true;
+      
+      // Update the final wildcard winner
+      tournament.wildcardFinalWinner = winners[0];
+      
+      // Switch to grand final
+      tournament.currentRound = "grandfinal";
+      tournament.isRoundComplete = false;
+      
+      console.log(`Final wildcard winner: ${winners[0]}`);
+      console.log(`Switching to grand final: 2 knockout winners will compete`);
     } else {
       // Store winners for next wildcard round (don't start it yet)
       tournament.nextWildcardTeams = winners;
@@ -349,6 +420,8 @@ export const getTournament = async (req, res) => {
       .populate('nextWildcardTeams')
       .populate('knockoutFinalWinner')
       .populate('knockoutFinalLoser')
+      .populate('knockoutFinalWinners')
+      .populate('knockoutFinalLosers')
       .populate('wildcardFinalWinner')
       .populate({
         path: 'knockoutRounds.matches',
@@ -364,6 +437,10 @@ export const getTournament = async (req, res) => {
       })
       .populate({
         path: 'finalMatch',
+        populate: { path: 'players' }
+      })
+      .populate({
+        path: 'secondPlaceMatch',
         populate: { path: 'players' }
       });
     
@@ -470,21 +547,21 @@ export const startNextWildcardRound = async (req, res) => {
   }
 };
 
-export const completeSemifinalRound = async (req, res) => {
+export const completeGrandFinalRound = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(`Completing semifinal round for tournament: ${id}`);
+    console.log(`Completing grand final round for tournament: ${id}`);
     
     const tournament = await Tournament.findById(id).populate('teams');
     if (!tournament) {
       return res.status(404).json({ error: "Tournament not found" });
     }
 
-    if (tournament.currentRound !== "semifinal") {
-      return res.status(400).json({ error: "Tournament is not in semifinal round" });
+    if (tournament.currentRound !== "grandfinal") {
+      return res.status(400).json({ error: "Tournament is not in grand final round" });
     }
 
-    const matches = await Match.find({ _id: { $in: tournament.semifinalMatches } });
+    const matches = await Match.find({ _id: { $in: tournament.finalMatch ? [tournament.finalMatch] : [] } });
     
     // Check if all matches are completed
     const allCompleted = matches.every(match => match.status === "completed");
@@ -497,71 +574,108 @@ export const completeSemifinalRound = async (req, res) => {
       .filter(match => match.winner)
       .map(match => match.winner);
 
-    console.log(`Semifinal completed. Winners: ${winners.length}`);
+    console.log(`Grand final completed. Winners: ${winners.length}`);
 
     if (winners.length === 1) {
-      // Create final match between knockout winner and semifinal winner
-      console.log("Creating final match between knockout winner and semifinal winner");
+      // Create 2nd place match between knockout final loser and wildcard final winner
+      console.log("Creating 2nd place match between knockout final loser and wildcard final winner");
       
-      const finalMatch = new Match({
-        roundType: "final",
-        players: [tournament.knockoutFinalWinner, winners[0]]
+      const secondPlaceMatch = new Match({
+        roundType: "secondplace",
+        players: [tournament.knockoutFinalLoser, tournament.wildcardFinalWinner]
       });
-      await finalMatch.save();
+      await secondPlaceMatch.save();
       
-      tournament.finalMatch = finalMatch._id;
-      tournament.currentRound = "grandfinal";
+      tournament.secondPlaceMatch = secondPlaceMatch._id;
+      tournament.currentRound = "secondplace";
       tournament.isRoundComplete = false;
       
-      console.log(`Final match: Knockout winner vs Semifinal winner`);
-      console.log(`Knockout winner: ${tournament.knockoutFinalWinner}, Semifinal winner: ${winners[0]}`);
+      console.log(`2nd place match: Knockout final loser vs Wildcard final winner`);
+      console.log(`Knockout final loser: ${tournament.knockoutFinalLoser}, Wildcard final winner: ${tournament.wildcardFinalWinner}`);
     } else {
-      return res.status(400).json({ error: "Semifinal should have exactly 1 winner" });
+      return res.status(400).json({ error: "Grand final should have exactly 1 winner" });
     }
 
     await tournament.save();
-    console.log("Semifinal round completed successfully");
-    res.json({ message: "Semifinal round completed successfully", tournament });
+    console.log("Grand final round completed successfully");
+    res.json({ message: "Grand final round completed successfully", tournament });
   } catch (err) {
-    console.error("Error completing semifinal round:", err);
+    console.error("Error completing grand final round:", err);
     res.status(500).json({ error: err.message });
   }
 };
 
-// Start semifinal round
-export const startSemifinalRound = async (req, res) => {
+// Complete second place match
+export const completeSecondPlaceRound = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(`Starting semifinal round for tournament: ${id}`);
+    console.log(`Completing second place match for tournament: ${id}`);
     
     const tournament = await Tournament.findById(id).populate('teams');
     if (!tournament) {
       return res.status(404).json({ error: "Tournament not found" });
     }
 
-    if (tournament.currentRound !== "semifinal") {
-      return res.status(400).json({ error: "Tournament is not in semifinal round" });
+    if (tournament.currentRound !== "secondplace") {
+      return res.status(400).json({ error: "Tournament is not in second place round" });
     }
 
-    if (!tournament.wildcardFinalWinner || !tournament.knockoutFinalLoser) {
-      return res.status(400).json({ error: "Missing wildcard final winner or knockout final loser" });
+    const match = await Match.findById(tournament.secondPlaceMatch);
+    if (!match) {
+      return res.status(400).json({ error: "Second place match not found" });
     }
 
-    // Create semifinal match between wildcard winner and knockout final loser
-    const semifinalMatch = new Match({
-      roundType: "semifinal",
-      players: [tournament.wildcardFinalWinner, tournament.knockoutFinalLoser]
-    });
-    await semifinalMatch.save();
+    if (match.status !== "completed") {
+      return res.status(400).json({ error: "Second place match must be completed" });
+    }
+
+    // Tournament is now complete
+    tournament.currentRound = "completed";
+    tournament.isRoundComplete = true;
+
+    await tournament.save();
+    console.log("Second place match completed - Tournament finished!");
+    res.json({ message: "Tournament completed successfully", tournament });
+  } catch (err) {
+    console.error("Error completing second place match:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Start grand final round
+export const startGrandFinalRound = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`Starting grand final round for tournament: ${id}`);
     
-    tournament.semifinalMatches = [semifinalMatch._id];
+    const tournament = await Tournament.findById(id).populate('teams');
+    if (!tournament) {
+      return res.status(404).json({ error: "Tournament not found" });
+    }
+
+    if (tournament.currentRound !== "grandfinal") {
+      return res.status(400).json({ error: "Tournament is not in grand final round" });
+    }
+
+    if (!tournament.knockoutFinalWinner) {
+      return res.status(400).json({ error: "Missing knockout final winner" });
+    }
+
+    // Create grand final match between the 2 knockout final winners
+    const grandFinalMatch = new Match({
+      roundType: "grandfinal",
+      players: tournament.knockoutFinalWinners || [tournament.knockoutFinalWinner, tournament.knockoutFinalWinner]
+    });
+    await grandFinalMatch.save();
+    
+    tournament.finalMatch = grandFinalMatch._id;
     tournament.isRoundComplete = false;
 
     await tournament.save();
-    console.log(`Started semifinal match: Wildcard winner vs Knockout final loser`);
-    res.json({ message: "Semifinal round started successfully", tournament });
+    console.log(`Started grand final match: 2 knockout winners competing`);
+    res.json({ message: "Grand final round started successfully", tournament });
   } catch (err) {
-    console.error("Error starting semifinal round:", err);
+    console.error("Error starting grand final round:", err);
     res.status(500).json({ error: err.message });
   }
 };

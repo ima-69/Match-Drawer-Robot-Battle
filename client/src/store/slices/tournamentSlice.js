@@ -90,44 +90,44 @@ export const startNextWildcardRound = createAsyncThunk("tournaments/startNextWil
   }
 });
 
-export const startSemifinalRound = createAsyncThunk("tournaments/startSemifinalRound", async (tournamentId, { rejectWithValue }) => {
+export const startGrandFinalRound = createAsyncThunk("tournaments/startGrandFinalRound", async (tournamentId, { rejectWithValue }) => {
   try {
-    console.log("Redux: Starting semifinal round for tournament:", tournamentId);
-    const res = await api.post(`/tournaments/${tournamentId}/start-semifinal-round`, {}, {
+    console.log("Redux: Starting grand final round for tournament:", tournamentId);
+    const res = await api.post(`/tournaments/${tournamentId}/start-grand-final-round`, {}, {
       headers: { "x-admin-key": "supersecretpassword123" }
     });
-    console.log("Redux: Start semifinal round response:", res.data);
+    console.log("Redux: Start grand final round response:", res.data);
     return res.data;
   } catch (error) {
-    console.error("Redux: Start semifinal round error:", error);
+    console.error("Redux: Start grand final round error:", error);
     return rejectWithValue(error.response?.data?.error || error.message);
   }
 });
 
-export const completeSemifinalRound = createAsyncThunk("tournaments/completeSemifinalRound", async (tournamentId, { rejectWithValue }) => {
+export const completeGrandFinalRound = createAsyncThunk("tournaments/completeGrandFinalRound", async (tournamentId, { rejectWithValue }) => {
   try {
-    console.log("Redux: Starting complete semifinal round for tournament:", tournamentId);
-    const res = await api.post(`/tournaments/${tournamentId}/complete-semifinal-round`, {}, {
+    console.log("Redux: Starting complete grand final round for tournament:", tournamentId);
+    const res = await api.post(`/tournaments/${tournamentId}/complete-grand-final-round`, {}, {
       headers: { "x-admin-key": "supersecretpassword123" }
     });
-    console.log("Redux: Complete semifinal round response:", res.data);
+    console.log("Redux: Complete grand final round response:", res.data);
     return res.data;
   } catch (error) {
-    console.error("Redux: Complete semifinal round error:", error);
+    console.error("Redux: Complete grand final round error:", error);
     return rejectWithValue(error.response?.data?.error || error.message);
   }
 });
 
-export const completeFinalRound = createAsyncThunk("tournaments/completeFinalRound", async (tournamentId, { rejectWithValue }) => {
+export const completeSecondPlaceRound = createAsyncThunk("tournaments/completeSecondPlaceRound", async (tournamentId, { rejectWithValue }) => {
   try {
-    console.log("Redux: Starting complete final round for tournament:", tournamentId);
-    const res = await api.post(`/tournaments/${tournamentId}/complete-final-round`, {}, {
+    console.log("Redux: Starting complete second place round for tournament:", tournamentId);
+    const res = await api.post(`/tournaments/${tournamentId}/complete-second-place-round`, {}, {
       headers: { "x-admin-key": "supersecretpassword123" }
     });
-    console.log("Redux: Complete final round response:", res.data);
+    console.log("Redux: Complete second place round response:", res.data);
     return res.data;
   } catch (error) {
-    console.error("Redux: Complete final round error:", error);
+    console.error("Redux: Complete second place round error:", error);
     return rejectWithValue(error.response?.data?.error || error.message);
   }
 });
@@ -269,34 +269,34 @@ const tournamentSlice = createSlice({
         console.error("Redux: startNextWildcardRound.rejected", action.payload);
         state.error = action.payload;
       })
-      .addCase(startSemifinalRound.fulfilled, (state, action) => {
-        console.log("Redux: startSemifinalRound.fulfilled", action.payload);
+      .addCase(startGrandFinalRound.fulfilled, (state, action) => {
+        console.log("Redux: startGrandFinalRound.fulfilled", action.payload);
         if (action.payload.tournament) {
           state.current = action.payload.tournament;
         }
       })
-      .addCase(startSemifinalRound.rejected, (state, action) => {
-        console.error("Redux: startSemifinalRound.rejected", action.payload);
+      .addCase(startGrandFinalRound.rejected, (state, action) => {
+        console.error("Redux: startGrandFinalRound.rejected", action.payload);
         state.error = action.payload;
       })
-      .addCase(completeSemifinalRound.fulfilled, (state, action) => {
-        console.log("Redux: completeSemifinalRound.fulfilled", action.payload);
+      .addCase(completeGrandFinalRound.fulfilled, (state, action) => {
+        console.log("Redux: completeGrandFinalRound.fulfilled", action.payload);
         if (action.payload.tournament) {
           state.current = action.payload.tournament;
         }
       })
-      .addCase(completeSemifinalRound.rejected, (state, action) => {
-        console.error("Redux: completeSemifinalRound.rejected", action.payload);
+      .addCase(completeGrandFinalRound.rejected, (state, action) => {
+        console.error("Redux: completeGrandFinalRound.rejected", action.payload);
         state.error = action.payload;
       })
-      .addCase(completeFinalRound.fulfilled, (state, action) => {
-        console.log("Redux: completeFinalRound.fulfilled", action.payload);
+      .addCase(completeSecondPlaceRound.fulfilled, (state, action) => {
+        console.log("Redux: completeSecondPlaceRound.fulfilled", action.payload);
         if (action.payload.tournament) {
           state.current = action.payload.tournament;
         }
       })
-      .addCase(completeFinalRound.rejected, (state, action) => {
-        console.error("Redux: completeFinalRound.rejected", action.payload);
+      .addCase(completeSecondPlaceRound.rejected, (state, action) => {
+        console.error("Redux: completeSecondPlaceRound.rejected", action.payload);
         state.error = action.payload;
       })
       .addCase(deleteTournament.fulfilled, (state, action) => {

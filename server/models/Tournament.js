@@ -21,11 +21,12 @@ const tournamentSchema = new mongoose.Schema({
   // Final matches
   semifinalMatches: [{ type: mongoose.Schema.Types.ObjectId, ref: "Match" }],
   finalMatch: { type: mongoose.Schema.Types.ObjectId, ref: "Match" },
+  secondPlaceMatch: { type: mongoose.Schema.Types.ObjectId, ref: "Match" },
   
   // Tournament state
   currentRound: { 
     type: String, 
-    enum: ["not_started", "knockout", "wildcard", "semifinal", "grandfinal", "completed"], 
+    enum: ["not_started", "knockout", "wildcard", "semifinal", "grandfinal", "secondplace", "completed"], 
     default: "not_started" 
   },
   currentKnockoutRound: { type: Number, default: 1 },
@@ -43,6 +44,8 @@ const tournamentSchema = new mongoose.Schema({
   // Final structure
   knockoutFinalWinner: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
   knockoutFinalLoser: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
+  knockoutFinalWinners: [{ type: mongoose.Schema.Types.ObjectId, ref: "Team" }],
+  knockoutFinalLosers: [{ type: mongoose.Schema.Types.ObjectId, ref: "Team" }],
   wildcardFinalWinner: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
   
   // Real-time update tracking
